@@ -103,12 +103,13 @@ public:
     static std::string hashPassword(const std::string& password, const std::string& salt = "");
 
     /**
-     * @brief Verify a password against a hash
+     * @brief Verify a password against a hash, using a provided salt
      * @param password Password to verify
-     * @param passwordHash Password hash to verify against
+     * @param salt Salt used during hashing
+     * @param passwordHash Password hash to verify against (should not contain the salt)
      * @return True if the password matches the hash, false otherwise
      */
-    static bool verifyPassword(const std::string& password, const std::string& passwordHash);
+    static bool verifyPassword(const std::string& password, const std::string& salt, const std::string& passwordHash);
 };
 
 } // namespace utils

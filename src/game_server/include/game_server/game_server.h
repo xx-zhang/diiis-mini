@@ -1,4 +1,5 @@
-#pragma once
+#ifndef D3SERVER_GAME_SERVER_H
+#define D3SERVER_GAME_SERVER_H
 
 #include <memory>
 #include <string>
@@ -7,6 +8,10 @@
 #include <atomic>
 #include <unordered_map>
 #include <boost/asio.hpp>
+#include "core/config.h"
+#include "core/logger.h"
+#include "utils/debug.h"
+#include "database/database_manager.h"
 
 namespace d3server {
 
@@ -31,10 +36,14 @@ class GameClient;
  */
 class GameSession;
 
+// Forward declare Player for now, will be a more complex class
+class Player;
+class World;
+
 /**
  * @brief Game server that handles in-game communication and game logic
  */
-class GameServer {
+class GameServer : public std::enable_shared_from_this<GameServer> {
 public:
     /**
      * @brief Constructor
@@ -85,6 +94,15 @@ public:
      */
     bool isRunning() const;
     
+    // Player/Session Management (examples)
+    // void playerConnected(std::shared_ptr<Player> player, uint32_t battleNetSessionId);
+    // void playerDisconnected(std::shared_ptr<Player> player);
+    // std::shared_ptr<Player> findPlayerByAccountId(uint32_t accountId);
+
+    // World Management (examples)
+    // std::shared_ptr<World> createWorld(const std::string& worldName, const std::string& sceneName);
+    // std::shared_ptr<World> getWorld(const std::string& worldName);
+
 private:
     /**
      * @brief Start accepting connections
@@ -120,23 +138,28 @@ private:
      */
     std::shared_ptr<GameSession> getGameSession(uint32_t sessionId);
     
+    void gameLoop(); // The actual loop run in m_gameThread
+    
     std::shared_ptr<core::Config> m_config;
     std::shared_ptr<database::DatabaseManager> m_dbManager;
     
-    boost::asio::io_context m_ioContext;
-    boost::asio::ip::tcp::acceptor m_acceptor;
-    
-    std::atomic<bool> m_running;
-    std::atomic<uint32_t> m_nextSessionId;
-    std::thread m_ioThread;
-    std::thread m_updateThread;
-    
-    mutable std::mutex m_clientsMutex;
-    std::unordered_map<std::string, std::shared_ptr<GameClient>> m_clients;
-    
-    mutable std::mutex m_sessionsMutex;
-    std::unordered_map<uint32_t, std::shared_ptr<GameSession>> m_sessions;
+    std::thread m_gameThread; 
+    bool m_isRunning;
+    std::atomic<bool> m_shutdownSignal{false};
+
+    // Example: Managing active players and worlds
+    // std::set<std::shared_ptr<Player>> m_activePlayers;
+    // std::mutex m_playersMutex;
+    // std::vector<std::shared_ptr<World>> m_worlds;
+    // std::mutex m_worldsMutex;
+
+    // If GameServer listens for its own connections (e.g., UDP or specific game TCP)
+    // boost::asio::io_context m_ioContext;
+    // boost::asio::ip::tcp::acceptor m_acceptor; // Or udp::socket
+    // std::thread m_ioThread;
 };
 
 } // namespace game_server
-} // namespace d3server 
+} // namespace d3server
+
+#endif // D3SERVER_GAME_SERVER_H 

@@ -14,6 +14,8 @@ option(DEBUG_MODE "Enable debug mode" ON)
 find_package(Threads REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system) # Try finding only system first, Asio is often header-only with system linkage
+# find_package(Boost REQUIRED COMPONENTS asio system) # Original line
 
 # Define debug mode
 if(DEBUG_MODE)
@@ -24,6 +26,7 @@ endif()
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${SQLite3_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS} # Keep this one, as FindBoost traditionally sets it.
 )
 
 # Add subdirectories

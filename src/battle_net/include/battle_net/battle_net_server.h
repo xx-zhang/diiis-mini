@@ -74,6 +74,12 @@ public:
      */
     bool isRunning() const;
     
+    /**
+     * @brief Called by BattleNetClient to remove itself from the active set
+     * @param client The client to remove
+     */
+    void removeClient(std::shared_ptr<BattleNetClient> client);
+    
 private:
     /**
      * @brief Start accepting connections

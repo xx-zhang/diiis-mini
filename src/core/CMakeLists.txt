@@ -12,5 +12,9 @@ target_include_directories(core
 target_link_libraries(core
     PRIVATE
     utils
+    database
+    battle_net
+    game_server
+    rest_api
     ${OPENSSL_LIBRARIES}
 ) 

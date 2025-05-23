@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 namespace d3server {
 namespace utils {
@@ -93,6 +95,14 @@ public:
      * @return Formatted time string
      */
     static std::string getCurrentTimeString(const std::string& format = "%Y-%m-%d %H:%M:%S");
+
+    // Converts an integer to its hexadecimal string representation
+    template<typename T>
+    static std::string toHex(T value) {
+        std::stringstream ss;
+        ss << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << static_cast<int>(value);
+        return ss.str();
+    }
 };
 
 } // namespace utils

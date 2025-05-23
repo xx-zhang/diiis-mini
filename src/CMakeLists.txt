@@ -16,9 +16,12 @@ target_link_libraries(d3server
     battle_net
     game_server
     rest_api
-    ${SQLite3_LIBRARIES}
-    ${OPENSSL_LIBRARIES}
+    Boost::system
+    Boost::boost
     Threads::Threads
+    SQLite::SQLite3
+    OpenSSL::Crypto
+    OpenSSL::SSL
 )
 
 # Installation

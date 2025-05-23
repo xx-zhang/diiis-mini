@@ -296,47 +296,23 @@ std::vector<uint8_t> CryptoUtils::hexDecode(const std::string& hexString) {
 
 std::string CryptoUtils::hashPassword(const std::string& password, const std::string& salt) {
     DEBUG_FUNCTION_ENTER();
-    
-    // Generate a random salt if none provided
-    std::string useSalt = salt.empty() 
-        ? base64Encode(std::string(reinterpret_cast<char*>(generateRandomBytes(16).data()), 16))
-        : salt;
-    
-    // Combine password and salt
-    std::string combined = password + "$" + useSalt;
-    
-    // Hash using SHA-256
-    std::string hash = sha256(combined);
-    
-    // Format as salt$hash
-    std::string result = useSalt + "$" + hash;
-    
+    // Using SHA256 for password hashing. Salt is prepended to the password.
+    // This is a common and secure way if the salt is then stored separately.
+    // Alternatively, the salt can be part of the output string, but current DB schema stores it separately.
+    std::string saltedPassword = salt + password;
+    std::string hashedPassword = sha256(saltedPassword);
+    DEBUG_LOG("Password hashed. Salt: " + salt + " InputPassword: " + password + " Hashed: " + hashedPassword);
     DEBUG_FUNCTION_EXIT();
-    return result;
+    return hashedPassword; 
 }
 
-bool CryptoUtils::verifyPassword(const std::string& password, const std::string& passwordHash) {
+// Changed to 3 arguments to match header and DatabaseManager usage
+bool CryptoUtils::verifyPassword(const std::string& password, const std::string& salt, const std::string& passwordHash) {
     DEBUG_FUNCTION_ENTER();
-    
-    // Split hash into salt and hash
-    size_t separatorPos = passwordHash.find('$');
-    if (separatorPos == std::string::npos) {
-        DEBUG_LOG("Invalid password hash format");
-        return false;
-    }
-    
-    std::string salt = passwordHash.substr(0, separatorPos);
-    std::string expectedHash = passwordHash.substr(separatorPos + 1);
-    
-    // Combine password and salt
-    std::string combined = password + "$" + salt;
-    
-    // Hash
-    std::string computedHash = sha256(combined);
-    
-    // Compare
-    bool result = (computedHash == expectedHash);
-    
+    // Re-hash the provided password with the provided salt and compare to the stored hash.
+    std::string rehashedPassword = hashPassword(password, salt);
+    bool result = (rehashedPassword == passwordHash);
+    DEBUG_LOG("Password verification. Salt: " + salt + " InputPassword: " + password + " StoredHash: " + passwordHash + " Rehashed: " + rehashedPassword + " Result: " + (result ? "Match" : "No Match"));
     DEBUG_FUNCTION_EXIT();
     return result;
 }
