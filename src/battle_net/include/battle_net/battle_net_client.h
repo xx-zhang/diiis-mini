@@ -167,9 +167,9 @@ protected:
     std::time_t m_connectTime;
     std::time_t m_lastActivityTime;
     std::vector<uint8_t> m_headerBuffer;
-    std::vector<uint8_t> m_messageBuffer;
+    std::vector<uint8_t> m_bodyBuffer;
     bool m_writing;
-    std::vector<std::vector<uint8_t>> m_messageQueue;
+    std::queue<std::vector<uint8_t>> m_writeQueue;
 };
 
 } // namespace battle_net

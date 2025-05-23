@@ -179,7 +179,7 @@ void BattleNetClient::readHeader() {
     DEBUG_FUNCTION_EXIT();
 }
 
-void BattleNetClient::readBody(uint32_t messageSize) {
+void BattleNetClient::readBody(size_t messageSize) {
     DEBUG_FUNCTION_ENTER();
     DEBUG_VARIABLE(messageSize);
     
