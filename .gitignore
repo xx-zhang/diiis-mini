@@ -1,1 +1,26 @@
-build
+# Build directory
+build/
+cmake-build-*/
+
+# Clangd cache
+.cache/
+.clangd/
+
+# VSCode settings
+# .vscode/
+
+# Compiled files
+*.a
+*.o
+*.out
+*.exe
+
+# Logs
+*.log
+
+# Dependency directories
+libs/
+
+# OS generated files
+.DS_Store
+Thumbs.db

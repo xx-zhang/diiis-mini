@@ -7,6 +7,7 @@ add_library(rest_api
 target_include_directories(rest_api
     PUBLIC
     include
+    ${PROJECT_SOURCE_DIR}/third_party # Use relative path for portability
 )
 
 target_link_libraries(rest_api

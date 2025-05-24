@@ -25,6 +25,7 @@ endif()
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    # ${PROJECT_SOURCE_DIR}/third_party
     ${SQLite3_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS} # Keep this one, as FindBoost traditionally sets it.
 )

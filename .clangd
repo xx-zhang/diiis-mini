@@ -1,0 +1,21 @@
+CompileFlags:
+  Add:
+    - "-I/root/d3s/include"
+    - "-I/root/d3s/battle_net/include"
+    - "-I/root/d3s/game_server/include"
+    - "-I/root/d3s/rest_api/include"
+    - "-I/root/d3s/utils/include"
+    - "-I/root/d3s/core/include"
+    - "-I/root/d3s/database/include"
+    - "-I/usr/include/c++/9"
+    - "-I/usr/include/x86_64-linux-gnu/c++/9"
+    - "-std=c++17"
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes 

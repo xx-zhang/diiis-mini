@@ -27,4 +27,13 @@ See the [Installation](installation.md) guide to get started quickly.
 - Support standard gameplay features
 - Include administration tools and GM commands
 - Provide detailed debugging information
-- Modular architecture for easy extension 
+- Modular architecture for easy extension
+
+### Modules
+
+*   [Core (`core`)](core.md) -auga_placeholder_1-
+*   [Database (`database`)](database.md)
+*   [Battle.Net (`battle_net`)](battle_net.md) - TODO
+*   [Game Server (`game_server`)](game_server.md) - TODO
+*   [REST API (`rest_api`)](rest_api.md)
+*   [Utilities (`utils`)](utils.md) 

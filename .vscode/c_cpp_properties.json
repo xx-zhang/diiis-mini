@@ -1,0 +1,37 @@
+{
+    "env": {
+        "myDefaultIncludePath": [
+            "${workspaceFolder}",
+            "${workspaceFolder}/contrib/include",
+            "${workspaceFolder}/src/include",
+            "${workspaceFolder}"
+        ],
+        "myCompilerPath": "/usr/bin/c++"
+    },
+    "configurations": [
+        {
+            "name": "Clang",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/contrib/include/**",
+                "/opt/rh/gcc-toolset-12/root/usr/include/c++/12/**",
+                "/usr/local/include/**",
+                "/usr/include/**"
+            ],
+            "defines": [],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+            "intelliSenseMode": "clang-x64",
+            "mergeConfigurations": true,
+            "browse": {
+                "path": [
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
+        }
+    ],
+    "version": 4
+}

@@ -473,4 +473,137 @@ All API errors follow this format:
     "error": true,
     "message": "Error message description"
 }
-``` 
+```
+
+# REST API Module (`rest_api`)
+
+The `rest_api` module provides an HTTP-based API for managing server operations, accounts, and potentially other game-related data. It uses Boost.Asio for asynchronous network operations and `nlohmann/json` for JSON processing.
+
+## Core Components
+
+### `RestServer` Class (`rest_api/include/rest_api/rest_server.h`)
+
+The `RestServer` class is responsible for listening for incoming HTTP connections, parsing requests, routing them to appropriate handlers, and sending back HTTP responses.
+
+#### Key Features:
+
+*   Asynchronous request handling using Boost.Asio.
+*   Route management with support for path parameters (e.g., `/api/accounts/{login}`).
+*   Basic API key authentication (Bearer token or `api_key` query parameter).
+*   JSON request and response handling via `nlohmann/json`.
+
+#### Public Methods
+
+*   `RestServer(boost::asio::io_context& P_io_context, short P_port, Config& P_config, Database& P_db, Logger& P_logger, Debug& P_debug)`: Constructor. Initializes the server with an I/O context, port, configuration, database, logger, and debug instances.
+*   `void start()`: Starts the HTTP server, begins accepting connections.
+*   `void stop()`: Stops the HTTP server, closes the acceptor and active connections.
+
+#### Internal `Session` Class
+
+*   Handles individual client connections asynchronously.
+*   Reads and parses HTTP requests (method, URI, version, headers, body).
+*   Invokes the appropriate registered `RouteHandler`.
+*   Formats and sends HTTP responses.
+
+#### Route Handling
+
+*   Routes are stored in a map: `std::unordered_map<std::string /* HTTP Method */, std::unordered_map<std::string /* Path Pattern */, RouteHandler>>`
+*   `RouteHandler` is a `std::function<HttpResponse(const HttpRequest&, const std::smatch& /* path_matches */)>`.
+*   `registerRoute(const std::string& method, const std::string& path_pattern, RouteHandler handler)`: Registers a handler for a specific HTTP method and path pattern. Path patterns can include named capture groups for parameters (e.g., `"/api/users/([a-zA-Z0-9_]+)"` where `([a-zA-Z0-9_]+)` captures a user ID).
+
+#### Request and Response Structures
+
+*   `struct HttpRequest`:
+    *   `std::string method`: e.g., "GET", "POST".
+    *   `std::string uri`: The full request URI.
+    *   `std::string path`: The path part of the URI.
+    *   `std::map<std::string, std::string> query_params`: Parsed query parameters.
+    *   `int http_version_major`, `int http_version_minor`.
+    *   `std::map<std::string, std::string> headers`.
+    *   `std::string body`.
+    *   `nlohmann::json json_body`: Parsed JSON body (if `Content-Type` is `application/json`).
+*   `struct HttpResponse`:
+    *   `int status_code`: e.g., 200, 404, 500.
+    *   `std::map<std::string, std::string> headers`.
+    *   `std::string body`.
+    *   `nlohmann::json json_body`: If set, this is serialized and sent as the body with `Content-Type: application/json`.
+
+### `AccountController` Class (`rest_api/include/rest_api/account_controller.h`)
+
+Handles API requests related to user accounts and characters. It uses the `Database` module for persistence.
+
+#### Public Methods
+
+*   `AccountController(Database& db, Logger& logger, Debug& debug)`: Constructor.
+*   `void registerRoutes(RestServer& server)`: Registers all account and character related routes with the `RestServer` instance.
+
+#### Endpoints Handled (and corresponding private handler methods):
+
+*   **Create Account:**
+    *   `POST /api/accounts`
+    *   Request Body: `{ "login": "user@email.com", "password": "securePassword123", "battle_tag": "Player#1234" }`
+    *   Response: `201 Created` with account details, or error (e.g., `400 Bad Request`, `409 Conflict`).
+    *   Private Handler: `HttpResponse handleCreateAccount(const HttpRequest& request, const std::smatch& matches)`
+*   **Get Account:**
+    *   `GET /api/accounts/{login}` (Path parameter: `login`)
+    *   Response: `200 OK` with account details, or `404 Not Found`.
+    *   Private Handler: `HttpResponse handleGetAccount(const HttpRequest& request, const std::smatch& matches)`
+*   **Update Account:**
+    *   `PUT /api/accounts/{login}`
+    *   Request Body: `{ "email": "new_email@example.com", "battle_tag": "NewTag#5678" }` (Password update might be a separate endpoint or require current password).
+    *   Response: `200 OK` with updated account details, or error (e.g., `400 Bad Request`, `404 Not Found`).
+    *   Private Handler: `HttpResponse handleUpdateAccount(const HttpRequest& request, const std::smatch& matches)`
+*   **Delete Account:**
+    *   `DELETE /api/accounts/{login}`
+    *   Response: `204 No Content`, or `404 Not Found`.
+    *   Private Handler: `HttpResponse handleDeleteAccount(const HttpRequest& request, const std::smatch& matches)`
+*   **Create Character:**
+    *   `POST /api/accounts/{login}/characters`
+    *   Request Body: `{ "name": "HeroName", "class_id": 0 }` (Refer to `docs/rest_api.md` or a dedicated section for `class_id` mapping)
+    *   Response: `201 Created` with character details, or error.
+    *   Private Handler: `HttpResponse handleCreateCharacter(const HttpRequest& request, const std::smatch& matches)`
+*   **Get Characters for Account:**
+    *   `GET /api/accounts/{login}/characters`
+    *   Response: `200 OK` with a list of characters, or `404 Not Found` (if account doesn't exist).
+    *   Private Handler: `HttpResponse handleGetCharacters(const HttpRequest& request, const std::smatch& matches)`
+
+### `AdminController` Class (`rest_api/include/rest_api/admin_controller.h`)
+
+Handles API requests for administrative operations like server management, user banning, and log viewing.
+
+#### Public Methods
+
+*   `AdminController(Database& db, Logger& logger, Debug& debug, Server& P_server_instance)`: Constructor. Takes a reference to the main `Server` instance for shutdown/restart operations.
+*   `void registerRoutes(RestServer& server)`: Registers all admin-related routes.
+
+#### Endpoints Handled (and corresponding private handler methods):
+
+*   **Ban Account:**
+    *   `POST /api/admin/accounts/{login}/ban`
+    *   Request Body: `{ "reason": "Violation of terms.", "duration_hours": 72 }` (duration optional, 0 or absent for permanent)
+    *   Response: `200 OK`, or `404 Not Found`.
+    *   Private Handler: `HttpResponse handleBanAccount(const HttpRequest& request, const std::smatch& matches)`
+*   **Unban Account:**
+    *   `POST /api/admin/accounts/{login}/unban`
+    *   Response: `200 OK`, or `404 Not Found`.
+    *   Private Handler: `HttpResponse handleUnbanAccount(const HttpRequest& request, const std::smatch& matches)`
+*   **Get Server Status:**
+    *   `GET /api/admin/server/status`
+    *   Response: `200 OK` with server status information (e.g., uptime, player count, version).
+    *   Private Handler: `HttpResponse handleGetServerStatus(const HttpRequest& request, const std::smatch& matches)`
+*   **Shutdown Server:**
+    *   `POST /api/admin/server/shutdown`
+    *   Response: `200 OK` (Request accepted, server will shut down). Uses the `Server` instance to trigger shutdown.
+    *   Private Handler: `HttpResponse handleServerShutdown(const HttpRequest& request, const std::smatch& matches)`
+*   **Restart Server:** (Placeholder - more complex, might involve an external script or process manager)
+    *   `POST /api/admin/server/restart`
+    *   Response: `200 OK` (Request accepted).
+    *   Private Handler: `HttpResponse handleServerRestart(const HttpRequest& request, const std::smatch& matches)`
+*   **Get Server Logs:**
+    *   `GET /api/admin/server/logs?level=INFO&lines=100` (Query params: `level`, `lines`)
+    *   Response: `200 OK` with log entries.
+    *   Private Handler: `HttpResponse handleGetServerLogs(const HttpRequest& request, const std::smatch& matches)`
+
+---
+
+*Further details on request/response JSON structures, `class_id` mappings, and specific error codes should be maintained and expanded here or in linked documents as development progresses.* 
