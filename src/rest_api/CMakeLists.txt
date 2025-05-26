@@ -4,6 +4,7 @@ add_library(rest_api
     src/admin_controller.cpp
 )
 
+
 target_include_directories(rest_api
     PUBLIC
     include

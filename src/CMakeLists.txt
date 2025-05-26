@@ -65,7 +65,6 @@ target_link_libraries(d3server
     game_server
     rest_api
     Boost::system
-    Boost::boost
     Threads::Threads
     SQLite::SQLite3
     OpenSSL::Crypto

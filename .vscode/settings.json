@@ -3,7 +3,7 @@
   "workbench.colorTheme": "GitHub Dark Dimmed",
   "workbench.preferredDarkColorTheme": "GitHub Dark",
   "workbench.preferredLightColorTheme": "GitHub Dark Dimmed",
-  "workbench.productIconTheme": "icons-carbon",
+  // "workbench.productIconTheme": "icons-carbon",
   "workbench.iconTheme": "file-icons-mac",
   "workbench.fontAliasing": "antialiased",
   "workbench.sash.size": 15,
@@ -123,7 +123,7 @@
     // "--compile-commands-dir=build",
     // 建议风格：打包(重载函数只会给出一个建议）；反可以设置为detailed
     "--completion-style=bundled",
-    "--enable-config",
+    // "--enable-config",
     // 默认格式化风格: 谷歌开源项目代码指南（可用的有 LLVM, Google, Chromium, Mozilla, Webkit, Microsoft, GNU 等）
     "--fallback-style=Google",
     // 启用这项时，补全函数时，将会给参数提供占位符，键入后按 Tab 可以切换到下一占位符，乃至函数末
