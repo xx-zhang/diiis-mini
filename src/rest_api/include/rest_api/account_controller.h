@@ -11,7 +11,7 @@ namespace core {
 class Config;
 }
 
-namespace database {
+namespace database_utils {
 class DatabaseManager;
 }
 
@@ -29,7 +29,7 @@ public:
      */
     AccountController(
         std::shared_ptr<core::Config> config,
-        std::shared_ptr<database::DatabaseManager> dbManager
+        std::shared_ptr<database_utils::DatabaseManager> dbManager
     );
     
     /**
@@ -125,7 +125,7 @@ private:
     HttpResponse createErrorResponse(int statusCode, const std::string& message);
     
     std::shared_ptr<core::Config> m_config;
-    std::shared_ptr<database::DatabaseManager> m_dbManager;
+    std::shared_ptr<database_utils::DatabaseManager> m_dbManager;
 };
 
 } // namespace rest_api

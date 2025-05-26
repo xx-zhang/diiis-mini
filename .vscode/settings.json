@@ -140,7 +140,7 @@
     // 输出的 JSON 文件更美观
     "--pretty",
     // 建议排序模型
-    "--ranking-model=heuristics",
+    // "--ranking-model=heuristics",
     // 同时开启的任务数量
     "-j=4"
   ],

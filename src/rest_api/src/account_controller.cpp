@@ -15,7 +15,7 @@ namespace rest_api {
 
 AccountController::AccountController(
     std::shared_ptr<core::Config> config,
-    std::shared_ptr<database::DatabaseManager> dbManager
+    std::shared_ptr<database_utils::DatabaseManager> dbManager
 ) : 
     m_config(config),
     m_dbManager(dbManager)
@@ -36,7 +36,6 @@ HttpResponse AccountController::createAccount(const HttpRequest& request) {
     DEBUG_VARIABLE(request.method);
     DEBUG_VARIABLE(request.uri);
     
-    // Parse JSON from request body
     HttpResponse errorResponse;
     std::string jsonStr = parseRequestJson(request, errorResponse);
     if (jsonStr.empty()) {
@@ -44,7 +43,6 @@ HttpResponse AccountController::createAccount(const HttpRequest& request) {
         return errorResponse;
     }
     
-    // Validate account data
     std::string errorMessage;
     if (!validateAccountData(jsonStr, errorMessage)) {
         DEBUG_FUNCTION_EXIT();
@@ -52,30 +50,25 @@ HttpResponse AccountController::createAccount(const HttpRequest& request) {
     }
     
     try {
-        // Parse account data
         json accountData = json::parse(jsonStr);
-        
-        // Extract required fields
         std::string login = accountData["login"];
         std::string email = accountData["email"];
         std::string password = accountData["password"];
-        
-        // Check if account already exists
+        std::string battleTag = accountData.contains("battle_tag") ? accountData["battle_tag"].get<std::string>() : login;
+
         if (m_dbManager->accountExists(login)) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(409, "Account with this login already exists");
         }
         
-        // Create account
-        bool success = m_dbManager->createAccount(login, email, password);
+        bool success = m_dbManager->createAccount(login, email, password, battleTag);
         if (!success) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(500, "Failed to create account");
         }
         
-        // Return success response
         HttpResponse response;
-        response.statusCode = 201; // Created
+        response.statusCode = 201;
         response.statusMessage = "Created";
         response.headers["Content-Type"] = "application/json";
         response.body = R"({"success":true,"message":"Account created successfully"})";
@@ -97,29 +90,26 @@ HttpResponse AccountController::getAllAccounts(const HttpRequest& request) {
     DEBUG_VARIABLE(request.uri);
     
     try {
-        // Get accounts from database
-        std::vector<database::Account> accounts = m_dbManager->getAllAccounts();
+        std::vector<database_utils::AccountData> accounts;
         
-        // Convert to JSON
-        json response = json::array();
+        json responseJson = json::array();
         for (const auto& account : accounts) {
             json accountJson = {
                 {"login", account.login},
                 {"email", account.email},
-                {"created", account.created},
-                {"last_login", account.lastLogin},
-                {"banned", account.banned},
-                {"character_count", account.characterCount}
+                {"created_at", account.created_at},
+                {"last_login", account.last_login},
+                {"is_banned", account.is_banned},
+                {"battle_tag", account.battle_tag}
             };
-            response.push_back(accountJson);
+            responseJson.push_back(accountJson);
         }
         
-        // Return response
         HttpResponse httpResponse;
         httpResponse.statusCode = 200;
         httpResponse.statusMessage = "OK";
         httpResponse.headers["Content-Type"] = "application/json";
-        httpResponse.body = response.dump(4); // Pretty print with 4 spaces indentation
+        httpResponse.body = responseJson.dump(4);
         
         DEBUG_FUNCTION_EXIT();
         return httpResponse;
@@ -138,31 +128,32 @@ HttpResponse AccountController::getAccount(const HttpRequest& request, const std
     DEBUG_VARIABLE(login);
     
     try {
-        // Check if account exists
         if (!m_dbManager->accountExists(login)) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(404, "Account not found");
         }
         
-        // Get account from database
-        database::Account account = m_dbManager->getAccount(login);
+        std::optional<database_utils::AccountData> accountOpt = m_dbManager->getAccountDetails(login);
+        if (!accountOpt) {
+            DEBUG_FUNCTION_EXIT();
+            return createErrorResponse(404, "Account not found after existence check");
+        }
+        database_utils::AccountData account = accountOpt.value();
         
-        // Convert to JSON
-        json response = {
+        json responseJson = {
             {"login", account.login},
             {"email", account.email},
-            {"created", account.created},
-            {"last_login", account.lastLogin},
-            {"banned", account.banned},
-            {"character_count", account.characterCount}
+            {"created_at", account.created_at},
+            {"last_login", account.last_login},
+            {"is_banned", account.is_banned},
+            {"battle_tag", account.battle_tag}
         };
         
-        // Return response
         HttpResponse httpResponse;
         httpResponse.statusCode = 200;
         httpResponse.statusMessage = "OK";
         httpResponse.headers["Content-Type"] = "application/json";
-        httpResponse.body = response.dump(4); // Pretty print with 4 spaces indentation
+        httpResponse.body = responseJson.dump(4);
         
         DEBUG_FUNCTION_EXIT();
         return httpResponse;
@@ -180,13 +171,11 @@ HttpResponse AccountController::updateAccount(const HttpRequest& request, const 
     DEBUG_VARIABLE(request.uri);
     DEBUG_VARIABLE(login);
     
-    // Check if account exists
     if (!m_dbManager->accountExists(login)) {
         DEBUG_FUNCTION_EXIT();
         return createErrorResponse(404, "Account not found");
     }
     
-    // Parse JSON from request body
     HttpResponse errorResponse;
     std::string jsonStr = parseRequestJson(request, errorResponse);
     if (jsonStr.empty()) {
@@ -195,37 +184,21 @@ HttpResponse AccountController::updateAccount(const HttpRequest& request, const 
     }
     
     try {
-        // Parse account data
-        json accountData = json::parse(jsonStr);
-        
-        // Prepare update data - only email and password can be updated
-        std::string newEmail = accountData.contains("email") ? accountData["email"] : "";
-        std::string newPassword = accountData.contains("password") ? accountData["password"] : "";
-        
-        // Validate email if provided
-        if (!newEmail.empty()) {
-            // Simple email validation with regex
-            std::regex emailRegex(R"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})");
-            if (!std::regex_match(newEmail, emailRegex)) {
+        json accountDataJson = json::parse(jsonStr);
+        if (accountDataJson.contains("password")) {
+            std::string newPassword = accountDataJson["password"];
+            if (newPassword.length() < 8) {
                 DEBUG_FUNCTION_EXIT();
-                return createErrorResponse(400, "Invalid email format");
+                return createErrorResponse(400, "Password must be at least 8 characters long");
+            }
+            
+            bool success = m_dbManager->changeAccountPassword(login, newPassword);
+            if (!success) {
+                DEBUG_FUNCTION_EXIT();
+                return createErrorResponse(500, "Failed to update account password");
             }
         }
         
-        // Validate password if provided
-        if (!newPassword.empty() && newPassword.length() < 8) {
-            DEBUG_FUNCTION_EXIT();
-            return createErrorResponse(400, "Password must be at least 8 characters long");
-        }
-        
-        // Update account
-        bool success = m_dbManager->updateAccount(login, newEmail, newPassword);
-        if (!success) {
-            DEBUG_FUNCTION_EXIT();
-            return createErrorResponse(500, "Failed to update account");
-        }
-        
-        // Return success response
         HttpResponse response;
         response.statusCode = 200;
         response.statusMessage = "OK";
@@ -250,20 +223,17 @@ HttpResponse AccountController::deleteAccount(const HttpRequest& request, const 
     DEBUG_VARIABLE(login);
     
     try {
-        // Check if account exists
         if (!m_dbManager->accountExists(login)) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(404, "Account not found");
         }
         
-        // Delete account
         bool success = m_dbManager->deleteAccount(login);
         if (!success) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(500, "Failed to delete account");
         }
         
-        // Return success response
         HttpResponse response;
         response.statusCode = 200;
         response.statusMessage = "OK";
@@ -288,35 +258,38 @@ HttpResponse AccountController::getCharacters(const HttpRequest& request, const 
     DEBUG_VARIABLE(login);
     
     try {
-        // Check if account exists
         if (!m_dbManager->accountExists(login)) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(404, "Account not found");
         }
         
-        // Get characters from database
-        std::vector<database::Character> characters = m_dbManager->getCharacters(login);
+        std::optional<database_utils::AccountData> accountOpt = m_dbManager->getAccountDetails(login);
+        if (!accountOpt) {
+            DEBUG_FUNCTION_EXIT();
+            return createErrorResponse(404, "Account details not found for character list retrieval");
+        }
+        int accountId = accountOpt.value().id;
         
-        // Convert to JSON
-        json response = json::array();
+        std::vector<database_utils::CharacterData> characters = m_dbManager->getCharactersForAccount(accountId);
+        
+        json responseJson = json::array();
         for (const auto& character : characters) {
             json characterJson = {
                 {"id", character.id},
                 {"name", character.name},
-                {"class_id", character.classId},
+                {"class_id", character.class_id},
                 {"level", character.level},
-                {"created", character.created},
-                {"last_played", character.lastPlayed}
+                {"created_at", character.created_at},
+                {"last_played", character.last_played}
             };
-            response.push_back(characterJson);
+            responseJson.push_back(characterJson);
         }
         
-        // Return response
         HttpResponse httpResponse;
         httpResponse.statusCode = 200;
         httpResponse.statusMessage = "OK";
         httpResponse.headers["Content-Type"] = "application/json";
-        httpResponse.body = response.dump(4); // Pretty print with 4 spaces indentation
+        httpResponse.body = responseJson.dump(4);
         
         DEBUG_FUNCTION_EXIT();
         return httpResponse;
@@ -334,19 +307,19 @@ HttpResponse AccountController::createCharacter(const HttpRequest& request, cons
     DEBUG_VARIABLE(request.uri);
     DEBUG_VARIABLE(login);
     
-    // Check if account exists
-    if (!m_dbManager->accountExists(login)) {
+    std::optional<database_utils::AccountData> accountOpt = m_dbManager->getAccountDetails(login);
+    if (!accountOpt) {
         DEBUG_FUNCTION_EXIT();
-        return createErrorResponse(404, "Account not found");
+        return createErrorResponse(404, "Account not found for character creation");
     }
-    
-    // Check character limit
-    if (m_dbManager->getCharacterCount(login) >= m_config->getServerConfig().maxCharactersPerAccount) {
+    int accountId = accountOpt.value().id;
+
+    std::vector<database_utils::CharacterData> existing_characters = m_dbManager->getCharactersForAccount(accountId);
+    if (existing_characters.size() >= m_config->getServerConfig().maxCharactersPerAccount) {
         DEBUG_FUNCTION_EXIT();
         return createErrorResponse(400, "Maximum number of characters reached for this account");
     }
     
-    // Parse JSON from request body
     HttpResponse errorResponse;
     std::string jsonStr = parseRequestJson(request, errorResponse);
     if (jsonStr.empty()) {
@@ -354,7 +327,6 @@ HttpResponse AccountController::createCharacter(const HttpRequest& request, cons
         return errorResponse;
     }
     
-    // Validate character data
     std::string errorMessage;
     if (!validateCharacterData(jsonStr, errorMessage)) {
         DEBUG_FUNCTION_EXIT();
@@ -362,34 +334,33 @@ HttpResponse AccountController::createCharacter(const HttpRequest& request, cons
     }
     
     try {
-        // Parse character data
-        json characterData = json::parse(jsonStr);
-        
-        // Extract required fields
-        std::string name = characterData["name"];
-        int classId = characterData["class_id"];
-        
-        // Check if character name already exists
-        if (m_dbManager->characterExists(name)) {
+        json characterDataJson = json::parse(jsonStr);
+        std::string name = characterDataJson["name"];
+        int classId = characterDataJson["class_id"];
+        int gender = characterDataJson.contains("gender") ? characterDataJson["gender"].get<int>() : 0;
+        bool hardcore = characterDataJson.contains("is_hardcore") ? characterDataJson["is_hardcore"].get<bool>() : false;
+
+        bool name_exists = false;
+        std::vector<database_utils::CharacterData> all_chars_for_account = m_dbManager->getCharactersForAccount(accountId);
+        for(const auto& c : all_chars_for_account) {
+            if (c.name == name) {
+                name_exists = true;
+                break;
+            }
+        }
+        if (name_exists) {
             DEBUG_FUNCTION_EXIT();
-            return createErrorResponse(409, "Character with this name already exists");
+            return createErrorResponse(409, "Character with this name already exists for this account");
         }
         
-        // Create character
-        database::Character character;
-        character.name = name;
-        character.classId = classId;
-        character.level = 1; // Start at level 1
-        
-        bool success = m_dbManager->createCharacter(login, character);
+        bool success = m_dbManager->createCharacter(accountId, name, classId, gender, hardcore);
         if (!success) {
             DEBUG_FUNCTION_EXIT();
             return createErrorResponse(500, "Failed to create character");
         }
         
-        // Return success response
         HttpResponse response;
-        response.statusCode = 201; // Created
+        response.statusCode = 201;
         response.statusMessage = "Created";
         response.headers["Content-Type"] = "application/json";
         response.body = R"({"success":true,"message":"Character created successfully"})";
@@ -407,66 +378,27 @@ HttpResponse AccountController::createCharacter(const HttpRequest& request, cons
 
 bool AccountController::validateAccountData(const std::string& jsonStr, std::string& errorMessage) {
     DEBUG_FUNCTION_ENTER();
-    
     try {
         json accountData = json::parse(jsonStr);
-        
-        // Check required fields
-        if (!accountData.contains("login")) {
-            errorMessage = "Missing required field: login";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        if (!accountData.contains("email")) {
-            errorMessage = "Missing required field: email";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        if (!accountData.contains("password")) {
-            errorMessage = "Missing required field: password";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        // Validate login
+        if (!accountData.contains("login")) { errorMessage = "Missing required field: login"; DEBUG_FUNCTION_EXIT(); return false; }
+        if (!accountData.contains("email")) { errorMessage = "Missing required field: email"; DEBUG_FUNCTION_EXIT(); return false; }
+        if (!accountData.contains("password")) { errorMessage = "Missing required field: password"; DEBUG_FUNCTION_EXIT(); return false; }
+
         std::string login = accountData["login"];
-        if (login.empty() || login.length() < 3 || login.length() > 16) {
-            errorMessage = "Login must be between 3 and 16 characters";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        // Validate login characters (alphanumeric)
+        if (login.empty() || login.length() < 3 || login.length() > 16) { errorMessage = "Login must be between 3 and 16 characters"; DEBUG_FUNCTION_EXIT(); return false; }
         std::regex loginRegex("^[a-zA-Z0-9]+$");
-        if (!std::regex_match(login, loginRegex)) {
-            errorMessage = "Login can only contain alphanumeric characters";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
+        if (!std::regex_match(login, loginRegex)) { errorMessage = "Login can only contain alphanumeric characters"; DEBUG_FUNCTION_EXIT(); return false; }
         
-        // Validate email
         std::string email = accountData["email"];
         std::regex emailRegex(R"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})");
-        if (!std::regex_match(email, emailRegex)) {
-            errorMessage = "Invalid email format";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
+        if (!std::regex_match(email, emailRegex)) { errorMessage = "Invalid email format"; DEBUG_FUNCTION_EXIT(); return false; }
         
-        // Validate password
         std::string password = accountData["password"];
-        if (password.length() < 8) {
-            errorMessage = "Password must be at least 8 characters long";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
+        if (password.length() < 8) { errorMessage = "Password must be at least 8 characters long"; DEBUG_FUNCTION_EXIT(); return false; }
         
         DEBUG_FUNCTION_EXIT();
         return true;
-    }
-    catch (const json::exception& e) {
+    } catch (const json::exception& e) {
         errorMessage = "Invalid JSON: " + std::string(e.what());
         DEBUG_FUNCTION_EXIT();
         return false;
@@ -475,51 +407,29 @@ bool AccountController::validateAccountData(const std::string& jsonStr, std::str
 
 bool AccountController::validateCharacterData(const std::string& jsonStr, std::string& errorMessage) {
     DEBUG_FUNCTION_ENTER();
-    
     try {
         json characterData = json::parse(jsonStr);
-        
-        // Check required fields
-        if (!characterData.contains("name")) {
-            errorMessage = "Missing required field: name";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        if (!characterData.contains("class_id")) {
-            errorMessage = "Missing required field: class_id";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        // Validate name
+        if (!characterData.contains("name")) { errorMessage = "Missing required field: name"; DEBUG_FUNCTION_EXIT(); return false; }
+        if (!characterData.contains("class_id")) { errorMessage = "Missing required field: class_id"; DEBUG_FUNCTION_EXIT(); return false; }
+
         std::string name = characterData["name"];
-        if (name.empty() || name.length() < 2 || name.length() > 12) {
-            errorMessage = "Name must be between 2 and 12 characters";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
-        
-        // Validate name characters (alphanumeric and some special chars)
+        if (name.empty() || name.length() < 2 || name.length() > 12) { errorMessage = "Name must be between 2 and 12 characters"; DEBUG_FUNCTION_EXIT(); return false; }
         std::regex nameRegex("^[a-zA-Z0-9_-]+$");
-        if (!std::regex_match(name, nameRegex)) {
-            errorMessage = "Name can only contain alphanumeric characters, underscores, and hyphens";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
+        if (!std::regex_match(name, nameRegex)) { errorMessage = "Name can only contain alphanumeric characters, underscores, and hyphens"; DEBUG_FUNCTION_EXIT(); return false; }
         
-        // Validate class_id
         int classId = characterData["class_id"];
-        if (classId < 1 || classId > 7) { // Assuming 7 classes in Diablo 3
-            errorMessage = "Invalid class_id. Must be between 1 and 7";
-            DEBUG_FUNCTION_EXIT();
-            return false;
-        }
+        if (classId < 1 || classId > 7) { errorMessage = "Invalid class_id. Must be between 1 and 7"; DEBUG_FUNCTION_EXIT(); return false; }
         
+        if (characterData.contains("gender")) {
+            if (!characterData["gender"].is_number_integer()) {errorMessage = "gender must be an integer"; DEBUG_FUNCTION_EXIT(); return false;}
+        }
+        if (characterData.contains("is_hardcore")) {
+            if (!characterData["is_hardcore"].is_boolean()) {errorMessage = "is_hardcore must be a boolean"; DEBUG_FUNCTION_EXIT(); return false;}
+        }
+
         DEBUG_FUNCTION_EXIT();
         return true;
-    }
-    catch (const json::exception& e) {
+    } catch (const json::exception& e) {
         errorMessage = "Invalid JSON: " + std::string(e.what());
         DEBUG_FUNCTION_EXIT();
         return false;
@@ -528,32 +438,24 @@ bool AccountController::validateCharacterData(const std::string& jsonStr, std::s
 
 std::string AccountController::parseRequestJson(const HttpRequest& request, HttpResponse& errorResponse) {
     DEBUG_FUNCTION_ENTER();
-    
-    // Check Content-Type header
     auto contentTypeIt = request.headers.find("Content-Type");
-    if (contentTypeIt == request.headers.end() || contentTypeIt->second != "application/json") {
+    if (contentTypeIt == request.headers.end() || contentTypeIt->second.find("application/json") == std::string::npos) {
         errorResponse = createErrorResponse(400, "Content-Type must be application/json");
         DEBUG_FUNCTION_EXIT();
         return "";
     }
-    
-    // Check body
     if (request.body.empty()) {
         errorResponse = createErrorResponse(400, "Request body is empty");
         DEBUG_FUNCTION_EXIT();
         return "";
     }
-    
-    // Validate JSON syntax
     try {
         json::parse(request.body);
-    }
-    catch (const json::exception& e) {
-        errorResponse = createErrorResponse(400, "Invalid JSON: " + std::string(e.what()));
+    } catch (const json::exception& e) {
+        errorResponse = createErrorResponse(400, "Invalid JSON syntax: " + std::string(e.what()));
         DEBUG_FUNCTION_EXIT();
         return "";
     }
-    
     DEBUG_FUNCTION_EXIT();
     return request.body;
 }
@@ -562,10 +464,8 @@ HttpResponse AccountController::createErrorResponse(int statusCode, const std::s
     DEBUG_FUNCTION_ENTER();
     DEBUG_VARIABLE(statusCode);
     DEBUG_VARIABLE(message);
-    
     HttpResponse response;
     response.statusCode = statusCode;
-    
     switch (statusCode) {
         case 400: response.statusMessage = "Bad Request"; break;
         case 401: response.statusMessage = "Unauthorized"; break;
@@ -575,17 +475,9 @@ HttpResponse AccountController::createErrorResponse(int statusCode, const std::s
         case 500: response.statusMessage = "Internal Server Error"; break;
         default: response.statusMessage = "Error"; break;
     }
-    
     response.headers["Content-Type"] = "application/json";
-    
-    // Create error JSON
-    json error = {
-        {"error", true},
-        {"message", message}
-    };
-    
+    json error = { {"error", true}, {"message", message} };
     response.body = error.dump();
-    
     DEBUG_FUNCTION_EXIT();
     return response;
 }
