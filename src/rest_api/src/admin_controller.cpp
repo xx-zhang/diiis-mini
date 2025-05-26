@@ -1,6 +1,6 @@
 #include "rest_api/admin_controller.h"
-#include "core/config.h"
-#include "core/logger.h"
+#include "d3core/config.h"
+#include "d3core/logger.h"
 #include "utils/debug.h"
 #include "utils/string_utils.h"
 #include "utils/file_utils.h"

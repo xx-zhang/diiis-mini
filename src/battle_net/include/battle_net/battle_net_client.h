@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "core/logger.h"
+#include "d3core/logger.h"
 #include "utils/debug.h"
 #include "database/database_manager.h"
 #include "battle_net/protocol.h"

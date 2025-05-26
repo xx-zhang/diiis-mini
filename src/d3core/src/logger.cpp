@@ -5,7 +5,7 @@
 #include <ctime>
 
 namespace d3server {
-namespace core {
+namespace d3core {
 
 Logger::Logger() : m_minLevel(LogLevel::INFO), m_logToConsole(true), m_initialized(false) {}
 
@@ -127,5 +127,5 @@ std::string Logger::logLevelToString(LogLevel level) {
     }
 }
 
-} // namespace core
+} // namespace d3core
 } // namespace d3server 

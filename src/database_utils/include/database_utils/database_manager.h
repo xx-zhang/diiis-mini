@@ -6,40 +6,38 @@
 #include <vector>
 #include <optional>
 #include <chrono>
-#include "core/logger.h"
-#include "core/config.h"
-#include "database_utils/crypto_utils.h"
 
-// Forward declarations for core components
+// 前置声明
 namespace d3server {
-namespace core {
-    class Logger;
-    class Config;
-}
-}
-
-// Forward declare sqlite_orm namespace if using it
-namespace sqlite_orm {
-    template<typename... Args>
-    struct storage;
+    namespace d3core {
+        class Config;
+        class Logger;
+    }
+    namespace database_utils {
+        class CryptoUtils;
+    }
 }
 
 namespace d3server {
 namespace database_utils {
 
-// Account data structure
+/**
+ * @brief 账户数据结构体
+ * 
+ * 存储游戏账户的详细信息，包括基本认证和状态信息
+ */
 struct AccountData {
-    int id = 0;
-    std::string login;
-    std::string email;
-    std::string password_hash;
-    std::string salt;
-    bool is_banned = false;
-    std::string last_login;
-    std::string created_at;
-    std::string updated_at;
-    int account_level = 0; // Normal, VIP, Admin, etc.
-    std::string battle_tag; // BattleTag for the account
+    int id = 0;                   ///< 唯一标识符
+    std::string login;            ///< 登录名
+    std::string email;            ///< 电子邮件地址
+    std::string password_hash;    ///< 密码哈希值
+    std::string salt;             ///< 密码加密盐值
+    bool is_banned = false;       ///< 账户是否被封禁
+    std::string last_login;       ///< 最后登录时间
+    std::string created_at;       ///< 账户创建时间
+    std::string updated_at;       ///< 账户最后更新时间
+    int account_level = 0;        ///< 账户等级（普通、VIP等）
+    std::string battle_tag;       ///< 游戏内唯一标识
 };
 
 // Character data structure
@@ -107,18 +105,80 @@ struct ClanData {
     int level = 1;
 };
 
+/**
+ * @brief 数据库管理器类
+ * 
+ * 提供数据库操作的核心功能，包括账户管理、数据持久化等
+ */
 class DatabaseManager {
 public:
-    DatabaseManager(std::shared_ptr<d3server::core::Config> config);
+    /**
+     * @brief 构造函数
+     * 
+     * @param config 配置对象智能指针，用于初始化数据库连接
+     */
+    explicit DatabaseManager(std::shared_ptr<core::Config> config);
+
+    /**
+     * @brief 析构函数
+     * 
+     * 确保安全关闭数据库连接
+     */
     ~DatabaseManager();
 
+    /**
+     * @brief 初始化数据库
+     * 
+     * 建立数据库连接，创建必要的表结构
+     * 
+     * @return bool 初始化是否成功
+     */
     bool init();
-    bool createTables();
+
+    /**
+     * @brief 创建新账户
+     * 
+     * @param login 登录名
+     * @param email 电子邮件
+     * @param password 明文密码
+     * @param battleTag 游戏标签
+     * @return bool 账户创建是否成功
+     */
+    bool createAccount(
+        const std::string& login, 
+        const std::string& email, 
+        const std::string& password, 
+        const std::string& battleTag
+    );
+
+    /**
+     * @brief 验证账户凭据
+     * 
+     * @param login 登录名
+     * @param password 明文密码
+     * @return bool 验证是否通过
+     */
+    bool verifyAccount(
+        const std::string& login, 
+        const std::string& password
+    );
+
+    /**
+     * @brief 获取账户详细信息
+     * 
+     * @param login 登录名
+     * @return std::optional<AccountData> 账户数据，如果不存在则返回空
+     */
+    std::optional<AccountData> getAccountDetails(
+        const std::string& login
+    );
+
+    // 禁用拷贝构造和赋值运算符
+    DatabaseManager(const DatabaseManager&) = delete;
+    DatabaseManager& operator=(const DatabaseManager&) = delete;
 
     // Account Management
     bool accountExists(const std::string& login);
-    bool verifyAccountPassword(const std::string& login, const std::string& password);
-    bool createAccount(const std::string& login, const std::string& email, const std::string& password, const std::string& battleTag);
     bool isAccountBanned(const std::string& login);
     bool updateAccountLastLogin(const std::string& login);
     AccountData getAccountByLogin(const std::string& login);
@@ -164,18 +224,50 @@ public:
     std::vector<ClanData> searchClans(const std::string& search_term);
 
 private:
-    std::shared_ptr<d3server::core::Config> m_config;
-    
-    // If using sqlite_orm, declare storage here
-    // std::unique_ptr<sqlite_orm::storage<AccountData, CharacterData, ItemData, GameSessionData, FriendData, ClanData>> m_storage;
-    
-    // For now, using SQLite directly
-    void* m_db = nullptr; // sqlite3* pointer
-    
-    // Helper methods
-    bool executeQuery(const std::string& query, const std::vector<std::pair<std::string, std::string>>& params = {});
+    std::shared_ptr<core::Config> m_config;  ///< 配置对象
+    void* m_db = nullptr;  ///< SQLite数据库连接指针
+
+    /**
+     * @brief 创建数据库表结构
+     * 
+     * @return bool 表创建是否成功
+     */
+    bool createTables();
+
+    /**
+     * @brief 生成随机盐值
+     * 
+     * @return std::string 生成的盐值
+     */
     std::string generateSalt();
-    std::string hashPassword(const std::string& password, const std::string& salt);
+
+    /**
+     * @brief 密码哈希
+     * 
+     * @param password 明文密码
+     * @param salt 盐值
+     * @return std::string 哈希后的密码
+     */
+    std::string hashPassword(
+        const std::string& password, 
+        const std::string& salt
+    );
+
+    /**
+     * @brief Execute a SQL query with optional parameters
+     * @param query SQL query string
+     * @param params Optional query parameters
+     * @return bool True if query execution successful, false otherwise
+     */
+    bool executeQuery(
+        const std::string& query, 
+        const std::vector<std::pair<std::string, std::string>>& params = {}
+    );
+
+    /**
+     * @brief Get current timestamp
+     * @return std::string Current timestamp in format YYYY-MM-DD HH:MM:SS
+     */
     std::string getCurrentTimestamp();
 };
 

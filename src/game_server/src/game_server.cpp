@@ -1,8 +1,8 @@
 #include "game_server/game_server.h"
 #include "game_server/game_client.h"
 #include "game_server/game_session.h"
-#include "core/config.h"
-#include "core/logger.h"
+#include "d3core/config.h"
+#include "d3core/logger.h"
 #include "utils/debug.h"
 #include "database/database_manager.h"
 

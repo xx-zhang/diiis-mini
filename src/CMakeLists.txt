@@ -4,9 +4,18 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Add include directories globally
+include_directories(
+    ${CMAKE_SOURCE_DIR}/src/include/d3core
+    ${CMAKE_SOURCE_DIR}/src/include/database_utils
+    ${CMAKE_SOURCE_DIR}/src/include/battle_net
+    ${CMAKE_SOURCE_DIR}/src/include/game_server
+    ${CMAKE_SOURCE_DIR}/src/include/rest_api
+)
+
 # Add subdirectories for each component
-add_subdirectory(core)
-add_subdirectory(database_utils) # Merged database and utils
+add_subdirectory(d3core)
+add_subdirectory(database_utils)
 add_subdirectory(battle_net)
 add_subdirectory(game_server)
 add_subdirectory(rest_api)
@@ -14,19 +23,20 @@ add_subdirectory(rest_api)
 # Main executable
 add_executable(d3server main.cpp)
 
+# Explicitly set include directories for the main executable
 target_include_directories(d3server
     PRIVATE
-    # Explicitly add include directories from our modules
-    core/include
-    database_utils/include
-    battle_net/include
-    game_server/include
-    rest_api/include
+    ${CMAKE_SOURCE_DIR}/src/include/d3core
+    ${CMAKE_SOURCE_DIR}/src/include/database_utils
+    ${CMAKE_SOURCE_DIR}/src/include/battle_net
+    ${CMAKE_SOURCE_DIR}/src/include/game_server
+    ${CMAKE_SOURCE_DIR}/src/include/rest_api
 )
 
+# Link libraries
 target_link_libraries(d3server 
     PRIVATE
-    core
+    d3core
     database_utils
     battle_net
     game_server

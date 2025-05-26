@@ -8,7 +8,7 @@
 #include <sstream>
 
 namespace d3server {
-namespace core {
+namespace d3core {
 
 Config::Config() {
     DEBUG_FUNCTION_ENTER();
@@ -248,5 +248,5 @@ void Config::setDefaults() {
     DEBUG_FUNCTION_EXIT();
 }
 
-} // namespace core
+} // namespace d3core
 } // namespace d3server 

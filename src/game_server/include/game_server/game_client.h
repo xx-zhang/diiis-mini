@@ -11,7 +11,7 @@
 namespace d3server {
 
 // Forward declarations
-namespace core {
+namespace d3core {
 class Config;
 }
 

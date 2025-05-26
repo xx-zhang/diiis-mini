@@ -1,6 +1,6 @@
-#include "core/server.h"
-#include "core/config.h"
-#include "core/logger.h"
+#include "d3core/server.h"
+#include "d3core/config.h"
+#include "d3core/logger.h"
 #include "utils/debug.h"
 #include "database/database_manager.h"
 #include "battle_net/battle_net_server.h"
@@ -11,7 +11,7 @@
 #include <thread>
 
 namespace d3server {
-namespace core {
+namespace d3core {
 
 Server::Server(
     std::shared_ptr<Config> config,
@@ -207,5 +207,5 @@ void Server::mainLoop() {
     DEBUG_FUNCTION_EXIT();
 }
 
-} // namespace core
+} // namespace d3core
 } // namespace d3server 

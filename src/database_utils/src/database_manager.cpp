@@ -1,15 +1,18 @@
-#include "database_utils/database_manager.h"
-#include "sqlite3.h"
+#include <database_utils/database_manager.h>
+#include <d3core/config.h>
+#include <database_utils/crypto_utils.h>
+#include <sqlite3.h>
 #include <iostream>
 #include <chrono>
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 
 namespace d3server {
 namespace database_utils {
 
-DatabaseManager::DatabaseManager(std::shared_ptr<d3server::core::Config> config)
+DatabaseManager::DatabaseManager(std::shared_ptr<core::Config> config)
     : m_config(config), m_db(nullptr) {
 }
 
@@ -187,10 +190,12 @@ bool DatabaseManager::executeQuery(const std::string& query, const std::vector<s
 }
 
 std::string DatabaseManager::generateSalt() {
+    // Use CryptoUtils to generate salt
     return CryptoUtils::generateSalt();
 }
 
 std::string DatabaseManager::hashPassword(const std::string& password, const std::string& salt) {
+    // Use CryptoUtils to hash password
     return CryptoUtils::hashPassword(password, salt);
 }
 
