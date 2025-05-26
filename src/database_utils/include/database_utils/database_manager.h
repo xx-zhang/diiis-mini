@@ -9,7 +9,7 @@
 
 // 前置声明
 namespace d3server {
-    namespace d3core {
+    namespace core {
         class Config;
         class Logger;
     }

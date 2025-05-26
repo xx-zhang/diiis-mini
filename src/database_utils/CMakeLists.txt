@@ -24,14 +24,14 @@ add_library(database_utils STATIC ${SOURCES} ${HEADERS})
 target_include_directories(database_utils 
     PUBLIC 
     ${CMAKE_SOURCE_DIR}/src/include/database_utils
-    ${CMAKE_SOURCE_DIR}/src/include/d3core
+    ${CMAKE_SOURCE_DIR}/src/include/core
 )
 
 # Link against SQLite and core library
 target_link_libraries(database_utils 
     PRIVATE 
     ${SQLite3_LIBRARIES}
-    d3core
+    core
 )
 
 # Ensure C++17 standard

@@ -3,7 +3,7 @@
 #include "battle_net/protocol.h"
 #include "utils/crypto_utils.h"
 #include "utils/string_utils.h"
-#include "d3core/logger.h"
+#include "core/logger.h"
 #include "utils/debug.h"
 
 #include <iostream> // For temporary logging

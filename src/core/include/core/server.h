@@ -25,7 +25,7 @@ namespace rest_api {
 class RestServer;
 }
 
-namespace d3core {
+namespace core {
 
 class Config;
 
@@ -93,5 +93,5 @@ private:
     void mainLoop();
 };
 
-} // namespace d3core
+} // namespace core
 } // namespace d3server 

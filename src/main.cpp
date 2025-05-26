@@ -4,9 +4,9 @@
 #include <csignal>
 #include <thread>
 
-#include "d3core/server.h"
-#include "d3core/config.h"
-#include "d3core/logger.h"
+#include "core/server.h"
+#include "core/config.h"
+#include "core/logger.h"
 #include "utils/debug.h"
 #include "database/database_manager.h"
 #include "battle_net/battle_net_server.h"

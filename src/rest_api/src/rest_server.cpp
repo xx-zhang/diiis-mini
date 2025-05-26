@@ -1,8 +1,8 @@
 #include "rest_api/rest_server.h"
 #include "rest_api/account_controller.h"
 #include "rest_api/admin_controller.h"
-#include "d3core/config.h"
-#include "d3core/logger.h"
+#include "core/config.h"
+#include "core/logger.h"
 #include "utils/debug.h"
 #include "utils/string_utils.h"
 #include "database/database_manager.h"
@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <regex>
+#include <memory>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 

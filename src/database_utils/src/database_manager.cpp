@@ -1,5 +1,5 @@
 #include <database_utils/database_manager.h>
-#include <d3core/config.h>
+#include <core/config.h>
 #include <database_utils/crypto_utils.h>
 #include <sqlite3.h>
 #include <iostream>

@@ -6,11 +6,12 @@ CompileFlags:
     - "-I/root/d3s/src/game_server/include"
     - "-I/root/d3s/src/rest_api/include"
     - "-I/root/d3s/src/utils/include"
-    - "-I/root/d3s/src/d3core/include"
+    - "-I/root/d3s/src/core/include"
     - "-I/root/d3s/src/database_utils/include"
     - "-I/usr/include/c++/9"
     - "-I/usr/include/x86_64-linux-gnu/c++/9"
     - "-std=c++17"
+  CompilationDatabase: build
 
 Diagnostics:
   UnusedIncludes: Strict

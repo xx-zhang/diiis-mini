@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace d3server {
-namespace d3core {
+namespace core {
 
 /**
  * @brief Database configuration structure
@@ -127,5 +127,5 @@ private:
     ServerConfig m_serverConfig;
 };
 
-} // namespace d3core
+} // namespace core
 } // namespace d3server 

@@ -8,15 +8,15 @@
 #include <atomic>
 #include <unordered_map>
 #include <boost/asio.hpp>
-#include "d3core/config.h"
-#include "d3core/logger.h"
+#include "core/config.h"
+#include "core/logger.h"
 #include "utils/debug.h"
 #include "database/database_manager.h"
 
 namespace d3server {
 
 // Forward declarations
-namespace d3core {
+namespace core {
 class Config;
 }
 
