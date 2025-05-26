@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rest_api/rest_server.h"
+#include "database_utils/database_manager.h"
 
 #include <memory>
 

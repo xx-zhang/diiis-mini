@@ -5,6 +5,7 @@
 #include "utils/string_utils.h"
 #include "database_utils/database_manager.h"
 
+#include <vector>
 #include <nlohmann/json.hpp>
 #include <regex>
 
@@ -384,18 +385,22 @@ bool AccountController::validateAccountData(const std::string& jsonStr, std::str
         if (!accountData.contains("email")) { errorMessage = "Missing required field: email"; DEBUG_FUNCTION_EXIT(); return false; }
         if (!accountData.contains("password")) { errorMessage = "Missing required field: password"; DEBUG_FUNCTION_EXIT(); return false; }
 
-        std::string login = accountData["login"];
+        std::string login = accountData["login"].get<std::string>();
         if (login.empty() || login.length() < 3 || login.length() > 16) { errorMessage = "Login must be between 3 and 16 characters"; DEBUG_FUNCTION_EXIT(); return false; }
         std::regex loginRegex("^[a-zA-Z0-9]+$");
         if (!std::regex_match(login, loginRegex)) { errorMessage = "Login can only contain alphanumeric characters"; DEBUG_FUNCTION_EXIT(); return false; }
         
-        std::string email = accountData["email"];
+        std::string email = accountData["email"].get<std::string>();
         std::regex emailRegex(R"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})");
         if (!std::regex_match(email, emailRegex)) { errorMessage = "Invalid email format"; DEBUG_FUNCTION_EXIT(); return false; }
         
-        std::string password = accountData["password"];
+        std::string password = accountData["password"].get<std::string>();
         if (password.length() < 8) { errorMessage = "Password must be at least 8 characters long"; DEBUG_FUNCTION_EXIT(); return false; }
         
+        if (accountData.contains("battle_tag")){
+            if(!accountData["battle_tag"].is_string()) {errorMessage = "battle_tag must be a string"; return false;}
+        }
+
         DEBUG_FUNCTION_EXIT();
         return true;
     } catch (const json::exception& e) {
@@ -412,19 +417,20 @@ bool AccountController::validateCharacterData(const std::string& jsonStr, std::s
         if (!characterData.contains("name")) { errorMessage = "Missing required field: name"; DEBUG_FUNCTION_EXIT(); return false; }
         if (!characterData.contains("class_id")) { errorMessage = "Missing required field: class_id"; DEBUG_FUNCTION_EXIT(); return false; }
 
-        std::string name = characterData["name"];
+        std::string name = characterData["name"].get<std::string>();
         if (name.empty() || name.length() < 2 || name.length() > 12) { errorMessage = "Name must be between 2 and 12 characters"; DEBUG_FUNCTION_EXIT(); return false; }
         std::regex nameRegex("^[a-zA-Z0-9_-]+$");
         if (!std::regex_match(name, nameRegex)) { errorMessage = "Name can only contain alphanumeric characters, underscores, and hyphens"; DEBUG_FUNCTION_EXIT(); return false; }
         
-        int classId = characterData["class_id"];
-        if (classId < 1 || classId > 7) { errorMessage = "Invalid class_id. Must be between 1 and 7"; DEBUG_FUNCTION_EXIT(); return false; }
+        if (!characterData["class_id"].is_number_integer()) {errorMessage = "class_id must be an integer"; return false;}
+        int classId = characterData["class_id"].get<int>();
+        if (classId < 1 || classId > 7) { errorMessage = "Invalid class_id. Example range: 1-7"; return false; }
         
         if (characterData.contains("gender")) {
-            if (!characterData["gender"].is_number_integer()) {errorMessage = "gender must be an integer"; DEBUG_FUNCTION_EXIT(); return false;}
+            if (!characterData["gender"].is_number_integer()) {errorMessage = "gender must be an integer"; return false;}
         }
         if (characterData.contains("is_hardcore")) {
-            if (!characterData["is_hardcore"].is_boolean()) {errorMessage = "is_hardcore must be a boolean"; DEBUG_FUNCTION_EXIT(); return false;}
+            if (!characterData["is_hardcore"].is_boolean()) {errorMessage = "is_hardcore must be a boolean"; return false;}
         }
 
         DEBUG_FUNCTION_EXIT();
