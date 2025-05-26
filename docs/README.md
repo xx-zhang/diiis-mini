@@ -1,5 +1,7 @@
 # D3Server Documentation
 
+# REMOVE 00000000 
+
 This is the main documentation for the D3Server project, a C++ implementation of a Diablo III server.
 
 ## Table of Contents
